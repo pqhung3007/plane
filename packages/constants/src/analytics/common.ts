@@ -93,6 +93,24 @@ export const ANALYTICS_INSIGHTS_FIELDS: Record<TAnalyticsTabsBase, IInsightField
       i18nKey: "workspace_analytics.completed_work_items",
     },
   ],
+  "projects": [
+    {
+      key: "total_projects",
+      i18nKey: "workspace_analytics.total_projects",
+    },
+    {
+      key: "on_track_projects",
+      i18nKey: "workspace_analytics.on_track_projects",
+    },
+    {
+      key: "off_track_projects",
+      i18nKey: "workspace_analytics.off_track_projects",
+    },
+    {
+      key: "at_risk_projects",
+      i18nKey: "workspace_analytics.at_risk_projects",
+    },
+  ],
 };
 
 export const ANALYTICS_DURATION_FILTER_OPTIONS = [

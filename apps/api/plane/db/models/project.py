@@ -33,6 +33,21 @@ class ProjectNetwork(Enum):
         return [(0, "Secret"), (2, "Public")]
 
 
+class ProjectStatus(models.TextChoices):
+    DRAFT = "draft"
+    PLANNING = "planning"
+    EXECUTION = "execution"
+    MONITORING = "monitoring"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class ProjectHealth(models.TextChoices):
+    ON_TRACK = "on_track"
+    OFF_TRACK = "off_track"
+    AT_RISK = "at_risk"
+
+
 def get_default_props():
     return {
         "filters": {
@@ -115,6 +130,20 @@ class Project(BaseModel):
     # external_id for imports
     external_source = models.CharField(max_length=255, null=True, blank=True)
     external_id = models.CharField(max_length=255, blank=True, null=True)
+    # project status and health
+    status = models.CharField(
+        choices=ProjectStatus.choices,
+        default=ProjectStatus.PLANNING,
+        max_length=20,
+        null=True,
+        blank=True,
+    )
+    health = models.CharField(
+        choices=ProjectHealth.choices,
+        max_length=20,
+        null=True,
+        blank=True,
+    )
 
     @property
     def cover_image_url(self):

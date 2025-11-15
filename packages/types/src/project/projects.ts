@@ -35,6 +35,9 @@ export interface IPartialProject {
   updated_by?: string;
 }
 
+export type TProjectStatus = "draft" | "planning" | "execution" | "monitoring" | "completed" | "cancelled";
+export type TProjectHealth = "on_track" | "off_track" | "at_risk";
+
 export interface IProject extends IPartialProject {
   archive_in?: number;
   close_in?: number;
@@ -51,6 +54,8 @@ export interface IProject extends IPartialProject {
   is_favorite?: boolean;
   members?: string[];
   timezone?: string;
+  status?: TProjectStatus;
+  health?: TProjectHealth;
 }
 
 export type TProjectAnalyticsCountParams = {
