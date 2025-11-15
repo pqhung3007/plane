@@ -97,6 +97,16 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
             "completed_work_items": self.get_filtered_counts(base_queryset.filter(state__group="completed")),
         }
 
+    def get_projects_stats(self) -> Dict[str, Dict[str, int]]:
+        base_queryset = Project.objects.filter(**self.filters["project_filters"])
+
+        return {
+            "total_projects": self.get_filtered_counts(base_queryset),
+            "on_track_projects": self.get_filtered_counts(base_queryset.filter(health="on_track")),
+            "off_track_projects": self.get_filtered_counts(base_queryset.filter(health="off_track")),
+            "at_risk_projects": self.get_filtered_counts(base_queryset.filter(health="at_risk")),
+        }
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="analytics")
@@ -110,6 +120,11 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
         elif tab == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif tab == "projects":
+            return Response(
+                self.get_projects_stats(),
                 status=status.HTTP_200_OK,
             )
         return Response({"message": "Invalid tab"}, status=status.HTTP_400_BAD_REQUEST)
@@ -151,6 +166,45 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
             .order_by("project_id")
         )
 
+    def get_projects_table_stats(self) -> QuerySet:
+        from django.db.models import Count as CountAgg, F, Case, When, FloatField
+
+        # Get the base queryset with workspace and project filters
+        base_queryset = Project.objects.filter(**self.filters["project_filters"])
+
+        # Apply date range filter if available
+        if self.filters["chart_period_range"]:
+            start_date, end_date = self.filters["chart_period_range"]
+            base_queryset = base_queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+        # Annotate with counts
+        return (
+            base_queryset.values("id", "name")
+            .annotate(
+                project_id=F("id"),
+                project_name=F("name"),
+                members_count=CountAgg("project_projectmember", filter=Q(project_projectmember__is_active=True), distinct=True),
+                epics_count=CountAgg("project_issue", filter=Q(project_issue__deleted_at__isnull=True, project_issue__type__is_epic=True), distinct=True),
+                work_items_count=CountAgg("project_issue", filter=Q(project_issue__deleted_at__isnull=True), distinct=True),
+                cycles_count=CountAgg("project_cycle", filter=Q(project_cycle__deleted_at__isnull=True), distinct=True),
+                modules_count=CountAgg("project_module", filter=Q(project_module__deleted_at__isnull=True), distinct=True),
+                pages_count=CountAgg("project_projectpage", filter=Q(project_projectpage__deleted_at__isnull=True), distinct=True),
+                views_count=CountAgg("project_issueview", filter=Q(project_issueview__deleted_at__isnull=True), distinct=True),
+                intake_count=CountAgg("project_issue__issue_intake", filter=Q(project_issue__issue_intake__isnull=False), distinct=True),
+                # Calculate completion percentage based on completed work items
+                completed_count=CountAgg("project_issue", filter=Q(project_issue__state__group="completed", project_issue__deleted_at__isnull=True), distinct=True),
+                total_count=CountAgg("project_issue", filter=Q(project_issue__deleted_at__isnull=True), distinct=True),
+            )
+            .annotate(
+                completion_percentage=Case(
+                    When(total_count=0, then=0.0),
+                    default=F("completed_count") * 100.0 / F("total_count"),
+                    output_field=FloatField(),
+                )
+            )
+            .order_by("project_id")
+        )
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -159,6 +213,11 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
         if type == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif type == "projects":
+            return Response(
+                self.get_projects_table_stats(),
                 status=status.HTTP_200_OK,
             )
 
@@ -278,6 +337,68 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
 
         return {"data": data, "schema": schema}
 
+    def projects_status_chart(self) -> Dict[str, Any]:
+        # Get the base queryset with workspace and project filters
+        base_queryset = Project.objects.filter(**self.filters["project_filters"])
+
+        # Apply date range filter if available
+        if self.filters["chart_period_range"]:
+            start_date, end_date = self.filters["chart_period_range"]
+            base_queryset = base_queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+        # Get counts by status
+        status_stats = (
+            base_queryset.values("status")
+            .annotate(count=Count("id"))
+            .order_by("status")
+        )
+
+        # Create data for chart - only show active states (not cancelled/completed by default)
+        # User mentioned: "We don't display them all, but just the active states are shown"
+        active_statuses = ["draft", "planning", "execution", "monitoring"]
+
+        # Build dict of status -> count
+        stats_dict = {stat["status"]: stat["count"] for stat in status_stats if stat["status"]}
+
+        # Generate data for all active statuses
+        data = []
+        for status in active_statuses:
+            count = stats_dict.get(status, 0)
+            data.append(
+                {
+                    "key": status,
+                    "name": status.replace("_", " ").title(),
+                    "count": count,
+                    "projects": count,
+                }
+            )
+
+        # Add completed and cancelled if they exist
+        if "completed" in stats_dict:
+            data.append(
+                {
+                    "key": "completed",
+                    "name": "Completed",
+                    "count": stats_dict["completed"],
+                    "projects": stats_dict["completed"],
+                }
+            )
+        if "cancelled" in stats_dict:
+            data.append(
+                {
+                    "key": "cancelled",
+                    "name": "Cancelled",
+                    "count": stats_dict["cancelled"],
+                    "projects": stats_dict["cancelled"],
+                }
+            )
+
+        schema = {
+            "projects": "projects",
+        }
+
+        return {"data": data, "schema": schema}
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -287,6 +408,9 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
 
         if type == "projects":
             return Response(self.project_chart(), status=status.HTTP_200_OK)
+
+        elif type == "projects-status":
+            return Response(self.projects_status_chart(), status=status.HTTP_200_OK)
 
         elif type == "custom-work-items":
             queryset = (
