@@ -97,6 +97,25 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
             "completed_work_items": self.get_filtered_counts(base_queryset.filter(state__group="completed")),
         }
 
+    def get_user_analytics_stats(self) -> Dict[str, Dict[str, int]]:
+        members_query = WorkspaceMember.objects.filter(
+            workspace__slug=self._workspace_slug, is_active=True, member__is_bot=False
+        )
+
+        if self.request.GET.get("project_ids", None):
+            project_ids = self.request.GET.get("project_ids", None)
+            project_ids = [str(project_id) for project_id in project_ids.split(",")]
+            members_query = ProjectMember.objects.filter(
+                project_id__in=project_ids, is_active=True, member__is_bot=False
+            )
+
+        return {
+            "total_users": self.get_filtered_counts(members_query),
+            "total_admins": self.get_filtered_counts(members_query.filter(role=ROLE.ADMIN.value)),
+            "total_members": self.get_filtered_counts(members_query.filter(role=ROLE.MEMBER.value)),
+            "total_guests": self.get_filtered_counts(members_query.filter(role=ROLE.GUEST.value)),
+        }
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="analytics")
@@ -110,6 +129,11 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
         elif tab == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif tab == "user-analytics":
+            return Response(
+                self.get_user_analytics_stats(),
                 status=status.HTTP_200_OK,
             )
         return Response({"message": "Invalid tab"}, status=status.HTTP_400_BAD_REQUEST)
@@ -151,6 +175,64 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
             .order_by("project_id")
         )
 
+    def get_user_work_items_stats(self) -> List[Dict[str, Any]]:
+        """Get work items stats per user for the user analytics page"""
+        from django.db.models import F, Value, CharField
+
+        base_queryset = Issue.issue_objects.filter(**self.filters["base_filters"])
+
+        # Get workspace members or project members based on filter
+        if self.request.GET.get("project_ids", None):
+            project_ids = self.request.GET.get("project_ids", None)
+            project_ids = [str(project_id) for project_id in project_ids.split(",")]
+            members = ProjectMember.objects.filter(
+                project_id__in=project_ids, is_active=True, member__is_bot=False
+            ).select_related("member").distinct("member_id")
+        else:
+            members = WorkspaceMember.objects.filter(
+                workspace__slug=self._workspace_slug, is_active=True, member__is_bot=False
+            ).select_related("member")
+
+        # Get work items assigned to each member
+        user_stats = []
+        for member_obj in members:
+            user = member_obj.member
+            user_issues = base_queryset.filter(assignees=user)
+
+            # Count work items by state
+            total_count = user_issues.count()
+
+            # Skip users with no work items
+            if total_count == 0:
+                continue
+
+            completed_count = user_issues.filter(state__group="completed").count()
+            started_count = user_issues.filter(state__group="started").count()
+            unstarted_count = user_issues.filter(state__group="unstarted").count()
+            backlog_count = user_issues.filter(state__group="backlog").count()
+
+            # Pending = Started + Unstarted + Backlog
+            pending_count = started_count + unstarted_count + backlog_count
+
+            user_stats.append({
+                "user_id": str(user.id),
+                "user_name": user.display_name or user.username,
+                "user_avatar": user.avatar,
+                "user_email": user.email,
+                "user_role": member_obj.role,
+                "total_work_items": total_count,
+                "completed_work_items": completed_count,
+                "pending_work_items": pending_count,
+                "started_work_items": started_count,
+                "unstarted_work_items": unstarted_count,
+                "backlog_work_items": backlog_count,
+            })
+
+        # Sort by total work items (descending)
+        user_stats.sort(key=lambda x: x["total_work_items"], reverse=True)
+
+        return user_stats
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -159,6 +241,11 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
         if type == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif type == "user-analytics":
+            return Response(
+                self.get_user_work_items_stats(),
                 status=status.HTTP_200_OK,
             )
 

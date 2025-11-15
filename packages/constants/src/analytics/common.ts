@@ -93,6 +93,36 @@ export const ANALYTICS_INSIGHTS_FIELDS: Record<TAnalyticsTabsBase, IInsightField
       i18nKey: "workspace_analytics.completed_work_items",
     },
   ],
+  "user-analytics": [
+    {
+      key: "total_users",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.users",
+      },
+    },
+    {
+      key: "total_admins",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.admins",
+      },
+    },
+    {
+      key: "total_members",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.members",
+      },
+    },
+    {
+      key: "total_guests",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.guests",
+      },
+    },
+  ],
 };
 
 export const ANALYTICS_DURATION_FILTER_OPTIONS = [
