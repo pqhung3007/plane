@@ -10,6 +10,7 @@ import { ProjectOverviewHeader } from "./header";
 import { ProjectOverviewDescription } from "./description";
 import { ProjectOverviewMetrics } from "./metrics";
 import { ProjectOverviewProgress } from "./progress";
+import { ProjectOverviewMilestones } from "./milestones";
 import { ProjectOverviewUpdates } from "./updates";
 import { ProjectOverviewActivity } from "./activity";
 import { ProjectOverviewSidebar } from "./sidebar";
@@ -69,6 +70,15 @@ export const ProjectOverviewRoot = observer(() => {
             workspaceSlug={workspaceSlug.toString()}
             projectId={projectId.toString()}
           />
+
+          {/* Milestones - Only show if milestone_view is enabled */}
+          {project.milestone_view && (
+            <ProjectOverviewMilestones
+              workspaceSlug={workspaceSlug.toString()}
+              projectId={projectId.toString()}
+              hasEditPermission={hasEditPermission}
+            />
+          )}
 
           {/* Project Updates */}
           <ProjectOverviewUpdates

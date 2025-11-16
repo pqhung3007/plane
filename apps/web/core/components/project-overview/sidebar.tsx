@@ -229,6 +229,7 @@ export const ProjectOverviewSidebar = observer((props: Props) => {
             {[
               { label: "Cycles", enabled: project.cycle_view },
               { label: "Modules", enabled: project.module_view },
+              { label: "Milestones", enabled: project.milestone_view },
               { label: "Pages", enabled: project.page_view },
               { label: "Views", enabled: project.issue_views_view },
               { label: "Inbox", enabled: project.inbox_view },
