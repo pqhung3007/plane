@@ -179,6 +179,16 @@ from .external.base import (
     UnsplashEndpoint,
     WorkspaceGPTIntegrationEndpoint,
 )
+
+from .integration.github import (
+    GithubIntegrationViewSet,
+    GithubRepositorySyncViewSet,
+    GithubPRStateMappingViewSet,
+    GithubUserConnectionViewSet,
+    GithubWebhookEndpoint,
+    GithubOAuthCallbackEndpoint,
+)
+
 from .estimate.base import (
     ProjectEstimatePointEndpoint,
     BulkEstimatePointEndpoint,

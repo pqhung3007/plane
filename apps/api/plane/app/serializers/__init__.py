@@ -128,3 +128,15 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+
+from .integration import (
+    IntegrationSerializer,
+    WorkspaceIntegrationSerializer,
+    GithubRepositorySerializer,
+    GithubRepositorySyncSerializer,
+    GithubIssueSyncSerializer,
+    GithubCommentSyncSerializer,
+    GithubUserConnectionSerializer,
+    GithubPRStateMappingSerializer,
+    GithubPRSyncSerializer,
+)
