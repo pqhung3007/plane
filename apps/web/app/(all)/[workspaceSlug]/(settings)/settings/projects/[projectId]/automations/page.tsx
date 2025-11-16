@@ -10,7 +10,7 @@ import type { IProject } from "@plane/types";
 // ui
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
-import { AutoArchiveAutomation, AutoCloseAutomation, WorkflowAutomations } from "@/components/automation";
+import { AutoArchiveAutomation, AutoCloseAutomation, WorkflowAutomationsTable } from "@/components/automation";
 import { PageHead } from "@/components/core/page-title";
 // hooks
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
@@ -63,7 +63,7 @@ const AutomationSettingsPage = observer(() => {
         />
         <AutoArchiveAutomation handleChange={handleChange} />
         <AutoCloseAutomation handleChange={handleChange} />
-        <WorkflowAutomations
+        <WorkflowAutomationsTable
           workspaceSlug={workspaceSlug || ""}
           projectId={projectId || ""}
           canPerformAdminActions={canPerformProjectAdminActions}

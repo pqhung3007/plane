@@ -300,6 +300,10 @@ class AutomationExecutor:
         self.automation.last_executed_at = timezone.now()
         self.automation.save(update_fields=["execution_count", "last_executed_at"])
 
+        # Create issue activity for successful automation execution
+        if success and actions_executed:
+            self._create_issue_activity(actions_executed)
+
         # Log execution
         execution_time_ms = int((time.time() - self.start_time) * 1000)
         log = AutomationLog.objects.create(
@@ -317,6 +321,67 @@ class AutomationExecutor:
         )
 
         return log
+
+    def _create_issue_activity(self, actions_executed):
+        """
+        Create issue activity entries for automation actions.
+
+        Args:
+            actions_executed: List of actions that were executed
+        """
+        from plane.db.models import IssueActivity
+
+        try:
+            # Create a summary of actions
+            action_summary = self._format_action_summary(actions_executed)
+
+            IssueActivity.objects.create(
+                issue=self.issue,
+                project=self.issue.project,
+                workspace=self.issue.workspace,
+                comment=f"Automation: {self.automation.name}",
+                verb="updated",
+                field="automation",
+                old_value=None,
+                new_value=action_summary,
+                actor_id=self.automation.created_by_id,
+            )
+
+        except Exception as e:
+            log_exception(e)
+
+    def _format_action_summary(self, actions_executed):
+        """Format executed actions into a human-readable summary"""
+        summaries = []
+
+        for action in actions_executed:
+            action_type = action.get("type")
+            config = action.get("config", {})
+
+            if action_type == "add_comment":
+                summaries.append("added a comment")
+            elif action_type == "change_state":
+                summaries.append("changed state")
+            elif action_type == "change_priority":
+                summaries.append(f"changed priority to {config.get('priority', 'unknown')}")
+            elif action_type == "add_assignee":
+                count = len(config.get("assignee_ids", []))
+                summaries.append(f"added {count} assignee(s)")
+            elif action_type == "remove_assignee":
+                count = len(config.get("assignee_ids", []))
+                summaries.append(f"removed {count} assignee(s)")
+            elif action_type == "add_label":
+                count = len(config.get("label_ids", []))
+                summaries.append(f"added {count} label(s)")
+            elif action_type == "remove_label":
+                count = len(config.get("label_ids", []))
+                summaries.append(f"removed {count} label(s)")
+            elif action_type == "set_start_date":
+                summaries.append("set start date")
+            elif action_type == "set_due_date":
+                summaries.append("set due date")
+
+        return ", ".join(summaries) if summaries else "performed automation actions"
 
 
 @shared_task
