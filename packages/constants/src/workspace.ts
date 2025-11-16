@@ -92,6 +92,13 @@ export const WORKSPACE_SETTINGS = {
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/billing/`,
   },
+  templates: {
+    key: "templates",
+    i18n_label: "workspace_settings.settings.templates.title",
+    href: `/settings/templates`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/templates/`,
+  },
   export: {
     key: "export",
     i18n_label: "workspace_settings.settings.exports.title",
@@ -122,6 +129,7 @@ export const WORKSPACE_SETTINGS_LINKS: {
   WORKSPACE_SETTINGS["general"],
   WORKSPACE_SETTINGS["members"],
   WORKSPACE_SETTINGS["billing-and-plans"],
+  WORKSPACE_SETTINGS["templates"],
   WORKSPACE_SETTINGS["export"],
   WORKSPACE_SETTINGS["webhooks"],
 ];

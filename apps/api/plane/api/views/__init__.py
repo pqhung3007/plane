@@ -4,6 +4,12 @@ from .project import (
     ProjectArchiveUnarchiveAPIEndpoint,
 )
 
+from .project_template import (
+    ProjectTemplateListCreateAPIEndpoint,
+    ProjectTemplateDetailAPIEndpoint,
+    ProjectTemplateUseAPIEndpoint,
+)
+
 from .state import (
     StateListCreateAPIEndpoint,
     StateDetailAPIEndpoint,

@@ -153,3 +153,107 @@ export interface ISearchIssueResponse {
 export type TPartialProject = IPartialProject;
 
 export type TProject = TPartialProject & IProject;
+
+// Project Template Types
+
+export interface IProjectTemplateStateConfig {
+  name: string;
+  color: string;
+  sequence: number;
+  group: string;
+  default?: boolean;
+}
+
+export interface IProjectTemplateLabelConfig {
+  name: string;
+  color: string;
+  description?: string;
+}
+
+export interface IProjectTemplateIssueTypeConfig {
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface IProjectTemplateWorkItemConfig {
+  name: string;
+  description?: string;
+  priority?: string;
+  state_group?: string;
+  labels?: string[];
+}
+
+export interface IProjectTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  description_text?: any;
+  description_html?: any;
+  cover_image?: string;
+  cover_image_url?: string;
+  cover_image_asset?: string | null;
+  workspace: IWorkspace | string;
+
+  // Project Properties
+  network: number;
+  project_lead?: IUserLite | string | null;
+  default_assignee?: IUserLite | string | null;
+
+  // Optional Features
+  module_view: boolean;
+  cycle_view: boolean;
+  issue_views_view: boolean;
+  page_view: boolean;
+  intake_view: boolean;
+  is_issue_type_enabled: boolean;
+  is_time_tracking_enabled: boolean;
+
+  // Template Content Configuration
+  include_states: boolean;
+  states_config: IProjectTemplateStateConfig[];
+  include_labels: boolean;
+  labels_config: IProjectTemplateLabelConfig[];
+  include_issue_types: boolean;
+  issue_types_config: IProjectTemplateIssueTypeConfig[];
+  include_work_items: boolean;
+  work_items_config: IProjectTemplateWorkItemConfig[];
+
+  // Metadata
+  emoji?: string | null;
+  icon_prop?: any;
+  logo_props: TLogoProps;
+
+  // Usage tracking
+  usage_count: number;
+  last_used_at?: string | null;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+  deleted_at?: string | null;
+}
+
+export interface IProjectTemplateLite {
+  id: string;
+  name: string;
+  description?: string;
+  cover_image?: string;
+  cover_image_url?: string;
+  icon_prop?: any;
+  emoji?: string | null;
+  logo_props: TLogoProps;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IProjectTemplateMap {
+  [id: string]: IProjectTemplate;
+}
+
+export type TProjectTemplate = IProjectTemplate;
+
+export type TProjectTemplateLite = IProjectTemplateLite;
