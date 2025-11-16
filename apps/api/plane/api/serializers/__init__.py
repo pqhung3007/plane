@@ -55,3 +55,11 @@ from .asset import (
 )
 from .invite import WorkspaceInviteSerializer
 from .member import ProjectMemberSerializer
+from .automation import (
+    ProjectAutomationSerializer,
+    ProjectAutomationLiteSerializer,
+    ProjectAutomationCreateSerializer,
+    ProjectAutomationUpdateSerializer,
+    AutomationLogSerializer,
+    AutomationLogLiteSerializer,
+)

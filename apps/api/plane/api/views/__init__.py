@@ -55,3 +55,10 @@ from .asset import UserAssetEndpoint, UserServerAssetEndpoint, GenericAssetEndpo
 from .user import UserEndpoint
 
 from .invite import WorkspaceInvitationsViewset
+
+from .automation import (
+    ProjectAutomationEndpoint,
+    ProjectAutomationDetailEndpoint,
+    AutomationLogEndpoint,
+    AutomationActivityEndpoint,
+)
