@@ -20,6 +20,7 @@ export type TProjectFilters = {
   lead?: string[] | null;
   members?: string[] | null;
   created_at?: string[] | null;
+  state?: string[] | null;
 };
 
 export type TProjectStoredFilters = {

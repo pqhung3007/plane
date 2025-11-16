@@ -3,6 +3,7 @@ import { TUserPermissions } from "../enums";
 import { TStateGroups } from "../state";
 import type { IUser, IUserLite } from "../users";
 import type { IWorkspace } from "../workspace";
+import type { IProjectStateLite } from "./project-state";
 
 export enum EUserProjectRoles {
   ADMIN = 20,
@@ -45,6 +46,8 @@ export interface IProject extends IPartialProject {
   readonly cover_image_url?: string;
   default_assignee?: IUser | string | null;
   default_state?: string | null;
+  state?: string | null;
+  state_detail?: IProjectStateLite | null;
   description?: string;
   estimate?: string | null;
   anchor?: string | null;

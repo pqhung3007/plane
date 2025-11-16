@@ -194,6 +194,17 @@ class ProjectSerializer(BaseSerializer):
     member_role = serializers.IntegerField(read_only=True)
     is_deployed = serializers.BooleanField(read_only=True)
     cover_image_url = serializers.CharField(read_only=True)
+    state_detail = serializers.SerializerMethodField()
+
+    def get_state_detail(self, obj):
+        if obj.state:
+            return {
+                "id": str(obj.state.id),
+                "name": obj.state.name,
+                "color": obj.state.color,
+                "group": obj.state.group,
+            }
+        return None
 
     class Meta:
         model = Project

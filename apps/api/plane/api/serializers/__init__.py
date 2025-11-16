@@ -23,6 +23,7 @@ from .issue import (
     IssueLinkUpdateSerializer,
 )
 from .state import StateLiteSerializer, StateSerializer
+from .project_state import ProjectStateLiteSerializer, ProjectStateSerializer
 from .cycle import (
     CycleSerializer,
     CycleIssueSerializer,

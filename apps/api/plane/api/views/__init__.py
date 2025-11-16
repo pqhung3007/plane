@@ -9,6 +9,11 @@ from .state import (
     StateDetailAPIEndpoint,
 )
 
+from .project_state import (
+    ProjectStateListCreateAPIEndpoint,
+    ProjectStateDetailAPIEndpoint,
+)
+
 from .issue import (
     WorkspaceIssueAPIEndpoint,
     IssueListCreateAPIEndpoint,

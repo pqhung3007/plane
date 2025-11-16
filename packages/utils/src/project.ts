@@ -74,6 +74,8 @@ export const shouldFilterProject = (
         fallsInFilters = fallsInFilters && !!createdDate && satisfiesDateFilter(createdDate, dateFilter);
       });
     }
+    if (filterKey === "state" && filters.state && filters.state.length > 0)
+      fallsInFilters = fallsInFilters && !!project.state && filters.state.includes(`${project.state}`);
   });
   if (displayFilters.my_projects && !project.member_role) fallsInFilters = false;
   if (displayFilters.archived_projects && !project.archived_at) fallsInFilters = false;
