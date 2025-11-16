@@ -179,3 +179,149 @@ export type THomeDashboardResponse = {
   dashboard: TDeprecatedDashboard;
   widgets: TWidget[];
 };
+
+// ===== Custom Dashboards =====
+
+export type TDashboard = {
+  id: string;
+  name: string;
+  description?: string;
+  workspace: string;
+  project_ids: string[];
+  created_by: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  is_favorite: boolean;
+};
+
+export type TDashboardCreatePayload = {
+  name: string;
+  description?: string;
+  project_ids: string[];
+};
+
+export type TDashboardUpdatePayload = Partial<TDashboardCreatePayload>;
+
+// Widget Types
+export type TWidgetType = "bar" | "line" | "area" | "donut" | "pie" | "number";
+
+// Widget Grouping/Metric Options
+export type TWidgetProperty =
+  | "priority"
+  | "state"
+  | "assignee"
+  | "label"
+  | "type"
+  | "cycle"
+  | "module"
+  | "created_date"
+  | "target_date"
+  | "start_date";
+
+export type TWidgetMetric =
+  | "count"
+  | "estimate_sum"
+  | "estimate_avg";
+
+// Widget Data Configuration
+export type TWidgetDataConfig = {
+  property: TWidgetProperty; // Group by / X-axis
+  metric: TWidgetMetric; // Measure / Y-axis
+  filters?: {
+    date_range?: {
+      start?: string;
+      end?: string;
+    };
+    priority?: string[];
+    state?: string[];
+    assignee?: string[];
+    label?: string[];
+  };
+};
+
+// Widget Appearance Configuration
+export type TWidgetColorScheme =
+  | "modern"
+  | "horizon"
+  | "sunset"
+  | "ocean"
+  | "forest"
+  | "vibrant"
+  | "monochrome";
+
+export type TWidgetAppearanceConfig = {
+  title: string;
+  color_scheme: TWidgetColorScheme;
+  show_legends: boolean;
+  show_tooltips: boolean;
+  // For donut/pie charts
+  show_center_value?: boolean;
+  // For area charts
+  fill_opacity?: number;
+  // For line charts
+  smooth_curve?: boolean;
+  show_markers?: boolean;
+};
+
+// Widget Layout (for grid positioning)
+export type TWidgetLayout = {
+  i: string; // widget id
+  x: number;
+  y: number;
+  w: number; // width in grid units
+  h: number; // height in grid units
+  minW?: number;
+  minH?: number;
+  maxW?: number;
+  maxH?: number;
+};
+
+// Complete Widget Entity
+export type TCustomWidget = {
+  id: string;
+  dashboard: string;
+  type: TWidgetType;
+  data_config: TWidgetDataConfig;
+  appearance_config: TWidgetAppearanceConfig;
+  layout: TWidgetLayout;
+  created_by: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TCustomWidgetCreatePayload = {
+  type: TWidgetType;
+  data_config?: Partial<TWidgetDataConfig>;
+  appearance_config?: Partial<TWidgetAppearanceConfig>;
+  layout?: Partial<TWidgetLayout>;
+};
+
+export type TCustomWidgetUpdatePayload = Partial<TCustomWidgetCreatePayload>;
+
+// Widget Data Response (actual chart data)
+export type TWidgetDataPoint = {
+  name: string; // Category name (e.g., "High Priority", "John Doe")
+  value: number; // Metric value
+  color?: string; // Optional color override
+  metadata?: Record<string, any>; // Additional data for tooltips
+};
+
+export type TWidgetDataResponse = {
+  data: TWidgetDataPoint[];
+  total?: number;
+  summary?: {
+    min?: number;
+    max?: number;
+    avg?: number;
+    sum?: number;
+  };
+};
+
+// Dashboard with widgets response
+export type TDashboardWithWidgets = {
+  dashboard: TDashboard;
+  widgets: TCustomWidget[];
+  layout: TWidgetLayout[];
+};
