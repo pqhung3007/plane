@@ -10,6 +10,11 @@ import { Row } from "@plane/ui";
 import { ActiveCycleStats } from "@/components/cycles/active-cycle/cycle-stats";
 import { ActiveCycleProductivity } from "@/components/cycles/active-cycle/productivity";
 import { ActiveCycleProgress } from "@/components/cycles/active-cycle/progress";
+import {
+  EnhancedCycleHeader,
+  EnhancedActiveCycleChart,
+  EnhancedCycleMetrics,
+} from "@/components/cycles/active-cycle/enhanced-index";
 import useCyclesDetails from "@/components/cycles/active-cycle/use-cycles-details";
 import { CycleListGroupHeader } from "@/components/cycles/list/cycle-list-group-header";
 import { CyclesListItem } from "@/components/cycles/list/cycles-list-item";
@@ -53,32 +58,42 @@ export const ActiveCycleRoot: React.FC<IActiveCycleDetails> = observer((props) =
           />
         ) : (
           <div className="flex flex-col border-b border-custom-border-200">
-            {cycleId && (
-              <CyclesListItem
-                key={cycleId}
-                cycleId={cycleId}
+            <Row className="bg-custom-background-100 pt-6 pb-6 px-6">
+              {/* Enhanced Cycle Header */}
+              <EnhancedCycleHeader
                 workspaceSlug={workspaceSlug}
                 projectId={projectId}
-                className="!border-b-transparent"
+                cycle={activeCycle}
               />
-            )}
-            <Row className="bg-custom-background-100 pt-3 pb-6">
-              <div className="grid grid-cols-1 bg-custom-background-100 gap-3 lg:grid-cols-2 xl:grid-cols-3">
-                <ActiveCycleProgress
-                  handleFiltersUpdate={handleFiltersUpdate}
-                  projectId={projectId}
-                  workspaceSlug={workspaceSlug}
-                  cycle={activeCycle}
-                />
-                <ActiveCycleProductivity workspaceSlug={workspaceSlug} projectId={projectId} cycle={activeCycle} />
-                <ActiveCycleStats
-                  workspaceSlug={workspaceSlug}
-                  projectId={projectId}
-                  cycle={activeCycle}
-                  cycleId={cycleId}
-                  handleFiltersUpdate={handleFiltersUpdate}
-                  cycleIssueDetails={cycleIssueDetails as ActiveCycleIssueDetails}
-                />
+
+              {/* Enhanced Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                {/* Metrics Sidebar (1/3 width) */}
+                <div className="lg:col-span-1">
+                  <EnhancedCycleMetrics
+                    cycle={activeCycle}
+                    handleFiltersUpdate={handleFiltersUpdate}
+                  />
+                </div>
+
+                {/* Charts Section (2/3 width) */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Burn-down Chart */}
+                  <EnhancedActiveCycleChart
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    cycle={activeCycle}
+                    plotType="burndown"
+                  />
+
+                  {/* Build-up Chart */}
+                  <EnhancedActiveCycleChart
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    cycle={activeCycle}
+                    plotType="burnup"
+                  />
+                </div>
               </div>
             </Row>
           </div>
