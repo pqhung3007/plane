@@ -97,6 +97,17 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
             "completed_work_items": self.get_filtered_counts(base_queryset.filter(state__group="completed")),
         }
 
+    def get_modules_stats(self) -> Dict[str, Dict[str, int]]:
+        modules_queryset = Module.objects.filter(**self.filters["base_filters"])
+        cycles_queryset = Cycle.objects.filter(**self.filters["base_filters"])
+
+        return {
+            "total_modules": self.get_filtered_counts(modules_queryset),
+            "total_cycles": self.get_filtered_counts(cycles_queryset),
+            "active_cycles": self.get_filtered_counts(cycles_queryset.filter(status__in=["current", "upcoming"])),
+            "completed_cycles": self.get_filtered_counts(cycles_queryset.filter(status="completed")),
+        }
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="analytics")
@@ -110,6 +121,11 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
         elif tab == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif tab == "modules":
+            return Response(
+                self.get_modules_stats(),
                 status=status.HTTP_200_OK,
             )
         return Response({"message": "Invalid tab"}, status=status.HTTP_400_BAD_REQUEST)
@@ -151,6 +167,51 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
             .order_by("project_id")
         )
 
+    def get_cycles_stats(self) -> List[Dict[str, Any]]:
+        from django.db.models import F, Case, When, FloatField
+
+        cycles_queryset = Cycle.objects.filter(**self.filters["base_filters"]).select_related("owned_by", "project")
+
+        # Get work items count for each cycle
+        cycles_with_stats = []
+        for cycle in cycles_queryset:
+            # Get work items in this cycle
+            cycle_issues = Issue.issue_objects.filter(
+                issue_cycle__cycle_id=cycle.id,
+                **self.filters["base_filters"]
+            )
+
+            total = cycle_issues.count()
+            completed = cycle_issues.filter(state__group="completed").count()
+            started = cycle_issues.filter(state__group="started").count()
+            un_started = cycle_issues.filter(state__group="unstarted").count()
+            backlog = cycle_issues.filter(state__group="backlog").count()
+            cancelled = cycle_issues.filter(state__group="cancelled").count()
+
+            completion_percentage = round((completed / total * 100), 2) if total > 0 else 0
+
+            cycles_with_stats.append({
+                "cycle_id": str(cycle.id),
+                "cycle_name": cycle.name,
+                "cycle_status": cycle.status,
+                "project_id": str(cycle.project_id),
+                "project_name": cycle.project.name if cycle.project else "",
+                "lead_id": str(cycle.owned_by_id) if cycle.owned_by_id else None,
+                "lead_name": cycle.owned_by.display_name if cycle.owned_by else None,
+                "lead_avatar": cycle.owned_by.avatar if cycle.owned_by else None,
+                "start_date": cycle.start_date.isoformat() if cycle.start_date else None,
+                "end_date": cycle.end_date.isoformat() if cycle.end_date else None,
+                "total_work_items": total,
+                "completed_work_items": completed,
+                "started_work_items": started,
+                "un_started_work_items": un_started,
+                "backlog_work_items": backlog,
+                "cancelled_work_items": cancelled,
+                "completion_percentage": completion_percentage,
+            })
+
+        return cycles_with_stats
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -159,6 +220,11 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
         if type == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif type == "modules":
+            return Response(
+                self.get_cycles_stats(),
                 status=status.HTTP_200_OK,
             )
 
@@ -278,6 +344,50 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
 
         return {"data": data, "schema": schema}
 
+    def cycles_completion_chart(self) -> Dict[str, Any]:
+        """
+        Generate a bar chart showing cycle completion percentage grouped by cycle status
+        """
+        cycles_queryset = Cycle.objects.filter(**self.filters["base_filters"]).select_related("project")
+
+        # Group cycles by status
+        cycle_statuses = ["current", "upcoming", "completed", "draft"]
+        data = []
+
+        for status in cycle_statuses:
+            status_cycles = cycles_queryset.filter(status=status)
+
+            # Calculate average completion for this status
+            total_completion = 0
+            count = 0
+
+            for cycle in status_cycles:
+                cycle_issues = Issue.issue_objects.filter(
+                    issue_cycle__cycle_id=cycle.id,
+                    **self.filters["base_filters"]
+                )
+                total = cycle_issues.count()
+                if total > 0:
+                    completed = cycle_issues.filter(state__group="completed").count()
+                    completion_percentage = (completed / total * 100)
+                    total_completion += completion_percentage
+                    count += 1
+
+            avg_completion = round(total_completion / count, 2) if count > 0 else 0
+
+            data.append({
+                "key": status,
+                "name": status.capitalize(),
+                "count": count,
+                "completion_percentage": avg_completion,
+            })
+
+        schema = {
+            "completion_percentage": "completion_percentage",
+        }
+
+        return {"data": data, "schema": schema}
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -308,6 +418,12 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
         elif type == "work-items":
             return Response(
                 self.work_item_completion_chart(),
+                status=status.HTTP_200_OK,
+            )
+
+        elif type == "modules":
+            return Response(
+                self.cycles_completion_chart(),
                 status=status.HTTP_200_OK,
             )
 
