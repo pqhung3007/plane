@@ -10,9 +10,10 @@ import { useState } from "react";
 
 type Props = {
   template: IProjectTemplateLite;
+  onEdit?: (templateId: string) => void;
 };
 
-export const ProjectTemplateCard = observer(({ template }: Props) => {
+export const ProjectTemplateCard = observer(({ template, onEdit }: Props) => {
   const { workspaceSlug } = useParams();
   const router = useRouter();
   const { template: templateStore } = useProject();
@@ -79,7 +80,7 @@ export const ProjectTemplateCard = observer(({ template }: Props) => {
               <span>Use template</span>
             </div>
           </CustomMenu.MenuItem>
-          <CustomMenu.MenuItem onClick={() => {}}>
+          <CustomMenu.MenuItem onClick={() => onEdit?.(template.id)}>
             <div className="flex items-center gap-2">
               <Edit className="h-4 w-4" />
               <span>Edit</span>

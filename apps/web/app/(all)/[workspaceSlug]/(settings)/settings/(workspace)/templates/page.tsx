@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { Plus, Search } from "lucide-react";
 import { Button, Loader, Input } from "@plane/ui";
+import { IProjectTemplate } from "@plane/types";
 import { PageHead } from "@/components/core";
 import { SettingsContentWrapper, SettingsHeading } from "@/components/settings";
 import { ProjectTemplateCard } from "@/components/project-templates";
@@ -14,6 +15,7 @@ import { useParams } from "next/navigation";
 
 export default observer(function WorkspaceTemplatesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<IProjectTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { workspaceSlug } = useParams();
   const { template } = useProject();
@@ -32,14 +34,33 @@ export default observer(function WorkspaceTemplatesPage() {
 
   const hasTemplates = template.projectTemplates.length > 0;
 
+  const handleEdit = async (templateId: string) => {
+    if (!workspaceSlug) return;
+    try {
+      const templateDetails = await template.fetchProjectTemplateDetails(
+        workspaceSlug.toString(),
+        templateId
+      );
+      setEditingTemplate(templateDetails);
+    } catch (error) {
+      console.error("Failed to fetch template details:", error);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setEditingTemplate(null);
+  };
+
   return (
     <>
       <PageHead title={pageTitle} />
       <CreateProjectTemplateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        isOpen={isCreateModalOpen || !!editingTemplate}
+        onClose={handleCloseModal}
+        template={editingTemplate || undefined}
         onSuccess={() => {
-          setIsCreateModalOpen(false);
+          handleCloseModal();
         }}
       />
       <SettingsContentWrapper size="lg">
@@ -85,8 +106,12 @@ export default observer(function WorkspaceTemplatesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTemplates.map((template) => (
-                  <ProjectTemplateCard key={template.id} template={template} />
+                {filteredTemplates.map((tmpl) => (
+                  <ProjectTemplateCard
+                    key={tmpl.id}
+                    template={tmpl}
+                    onEdit={handleEdit}
+                  />
                 ))}
               </div>
             )}
