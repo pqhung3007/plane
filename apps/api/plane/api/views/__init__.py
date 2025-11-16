@@ -9,6 +9,12 @@ from .state import (
     StateDetailAPIEndpoint,
 )
 
+from .work_item_template import (
+    WorkItemTemplateListCreateAPIEndpoint,
+    WorkItemTemplateDetailAPIEndpoint,
+    WorkItemTemplateApplyAPIEndpoint,
+)
+
 from .issue import (
     WorkspaceIssueAPIEndpoint,
     IssueListCreateAPIEndpoint,
