@@ -6,6 +6,12 @@ from .project import (
     ProjectCreateSerializer,
     ProjectUpdateSerializer,
 )
+from .project_template import (
+    ProjectTemplateSerializer,
+    ProjectTemplateLiteSerializer,
+    ProjectTemplateCreateSerializer,
+    ProjectTemplateUpdateSerializer,
+)
 from .issue import (
     IssueSerializer,
     LabelCreateUpdateSerializer,
