@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
+import Link from "next/link";
 import { Plus, Settings2, MoreVertical, Pencil, Trash2, Circle, Sparkles, Zap } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { useTranslation } from "@plane/i18n";
@@ -15,6 +16,9 @@ import { AutomationService } from "@/services/project/automation.service";
 // components
 import { WorkflowAutomationModal } from "./workflow-automation-modal";
 import { AdvancedAutomationBuilder } from "./advanced-automation-builder";
+import { AutomationEditDialog } from "./automation-edit-dialog";
+// hooks
+import { useAppRouter } from "@/hooks/use-app-router";
 // helpers
 import { renderFormattedDate, renderFormattedTime } from "@/helpers/date-time.helper";
 
@@ -27,9 +31,11 @@ type Props = {
 const automationService = new AutomationService();
 
 export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, canPerformAdminActions }: Props) => {
+  const router = useAppRouter();
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAdvancedBuilderOpen, setIsAdvancedBuilderOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<TProjectAutomation | null>(null);
   const [loadingActivities, setLoadingActivities] = useState<Set<string>>(new Set());
 
@@ -80,14 +86,14 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
     setIsAdvancedBuilderOpen(true);
   };
 
-  const handleEditAutomation = (automation: TProjectAutomation) => {
+  const handleQuickEdit = (automation: TProjectAutomation) => {
     setSelectedAutomation(automation);
-    // Check if automation uses complex conditions (open advanced builder)
-    if (typeof automation.conditions === "object" && !Array.isArray(automation.conditions)) {
-      setIsAdvancedBuilderOpen(true);
-    } else {
-      setIsModalOpen(true);
-    }
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditWorkflow = (automation: TProjectAutomation) => {
+    // Navigate to the automation detail page
+    router.push(`/${workspaceSlug}/settings/projects/${projectId}/automations/${automation.id}`);
   };
 
   const handleToggleAutomation = async (automation: TProjectAutomation) => {
@@ -320,9 +326,12 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
 
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-custom-text-100">
+                              <Link
+                                href={`/${workspaceSlug}/settings/projects/${projectId}/automations/${automation.id}`}
+                                className="text-sm font-medium text-custom-text-100 hover:text-custom-primary-100 hover:underline"
+                              >
                                 {automation.name}
-                              </span>
+                              </Link>
                               <ToggleSwitch
                                 value={automation.is_active}
                                 onChange={() => handleToggleAutomation(automation)}
@@ -394,11 +403,19 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
                             }
                           >
                             <CustomMenu.MenuItem
-                              onClick={() => handleEditAutomation(automation)}
+                              onClick={() => handleQuickEdit(automation)}
                             >
                               <div className="flex items-center gap-2">
                                 <Pencil className="h-3 w-3" />
-                                Edit
+                                Edit details
+                              </div>
+                            </CustomMenu.MenuItem>
+                            <CustomMenu.MenuItem
+                              onClick={() => handleEditWorkflow(automation)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Settings2 className="h-3 w-3" />
+                                Edit workflow
                               </div>
                             </CustomMenu.MenuItem>
                             <CustomMenu.MenuItem
@@ -446,6 +463,23 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
           isOpen={isAdvancedBuilderOpen}
           onClose={() => {
             setIsAdvancedBuilderOpen(false);
+            setSelectedAutomation(null);
+          }}
+          onSuccess={() => {
+            mutate(`AUTOMATIONS_${workspaceSlug}_${projectId}`);
+            mutate(`AUTOMATION_ACTIVITIES_${workspaceSlug}_${projectId}`);
+          }}
+        />
+      )}
+
+      {isEditDialogOpen && selectedAutomation && (
+        <AutomationEditDialog
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          automation={selectedAutomation}
+          isOpen={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false);
             setSelectedAutomation(null);
           }}
           onSuccess={() => {

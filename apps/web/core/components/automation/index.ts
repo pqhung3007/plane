@@ -5,6 +5,7 @@ export * from "./workflow-automations";
 export * from "./workflow-automations-table";
 export * from "./workflow-automation-modal";
 export * from "./advanced-automation-builder";
+export * from "./automation-edit-dialog";
 export * from "./condition-row";
 export * from "./condition-group-builder";
 export * from "./action-builder";
