@@ -99,6 +99,13 @@ export const WORKSPACE_SETTINGS = {
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/exports/`,
   },
+  worklogs: {
+    key: "worklogs",
+    i18n_label: "Worklogs",
+    href: `/settings/worklogs`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/worklogs/`,
+  },
   webhooks: {
     key: "webhooks",
     i18n_label: "workspace_settings.settings.webhooks.title",
@@ -123,6 +130,7 @@ export const WORKSPACE_SETTINGS_LINKS: {
   WORKSPACE_SETTINGS["members"],
   WORKSPACE_SETTINGS["billing-and-plans"],
   WORKSPACE_SETTINGS["export"],
+  WORKSPACE_SETTINGS["worklogs"],
   WORKSPACE_SETTINGS["webhooks"],
 ];
 
