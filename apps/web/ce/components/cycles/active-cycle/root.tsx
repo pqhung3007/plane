@@ -76,22 +76,12 @@ export const ActiveCycleRoot: React.FC<IActiveCycleDetails> = observer((props) =
                   />
                 </div>
 
-                {/* Charts Section (2/3 width) */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Burn-down Chart */}
+                {/* Chart Section (2/3 width) */}
+                <div className="lg:col-span-2">
                   <EnhancedActiveCycleChart
                     workspaceSlug={workspaceSlug}
                     projectId={projectId}
                     cycle={activeCycle}
-                    plotType="burndown"
-                  />
-
-                  {/* Build-up Chart */}
-                  <EnhancedActiveCycleChart
-                    workspaceSlug={workspaceSlug}
-                    projectId={projectId}
-                    cycle={activeCycle}
-                    plotType="burnup"
                   />
                 </div>
               </div>

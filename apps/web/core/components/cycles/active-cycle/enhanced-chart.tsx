@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 import type { ICycle, TCycleEstimateType, TCyclePlotType } from "@plane/types";
 import { formatActiveCycle } from "@plane/utils";
-import { Loader } from "@plane/ui";
+import { CustomSelect, Loader } from "@plane/ui";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 import { useCycle } from "@/hooks/store/use-cycle";
@@ -18,25 +18,35 @@ export type EnhancedActiveCycleChartProps = {
   workspaceSlug: string;
   projectId: string;
   cycle: ICycle | null;
-  plotType: TCyclePlotType;
 };
 
+const cyclePlotOptions = [
+  { value: "burndown", label: "Burn-down" },
+  { value: "burnup", label: "Build-up" },
+];
+
 export const EnhancedActiveCycleChart: React.FC<EnhancedActiveCycleChartProps> = observer((props) => {
-  const { workspaceSlug, projectId, cycle, plotType } = props;
+  const { workspaceSlug, projectId, cycle } = props;
 
   // plane hooks
   const { t } = useTranslation();
 
   // hooks
-  const { getEstimateTypeByCycleId, setEstimateType } = useCycle();
+  const { getEstimateTypeByCycleId, setEstimateType, getPlotTypeByCycleId, setPlotType } = useCycle();
 
   // derived values
   const estimateType: TCycleEstimateType = (cycle && getEstimateTypeByCycleId(cycle.id)) || "issues";
+  const plotType: TCyclePlotType = (cycle && getPlotTypeByCycleId(cycle.id)) || "burndown";
   const resolvedPath = useResolvedAssetPath({ basePath: "/empty-state/active-cycle/chart" });
 
-  const onChange = async (value: TCycleEstimateType) => {
+  const onEstimateTypeChange = async (value: TCycleEstimateType) => {
     if (!workspaceSlug || !projectId || !cycle || !cycle.id) return;
     setEstimateType(cycle.id, value);
+  };
+
+  const onPlotTypeChange = async (value: TCyclePlotType) => {
+    if (!cycle || !cycle.id) return;
+    setPlotType(cycle.id, value);
   };
 
   const chartData = useMemo(() => {
@@ -78,13 +88,27 @@ export const EnhancedActiveCycleChart: React.FC<EnhancedActiveCycleChartProps> =
     <div className="flex flex-col min-h-[20rem] gap-4 px-4 py-4 bg-custom-background-100 border border-custom-border-200 rounded-lg">
       <div className="relative flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-base text-custom-text-300 font-semibold">
-            {plotType === "burndown" ? t("Burn-down") : t("Build-up")}
-          </h3>
+          <CustomSelect
+            value={plotType}
+            label={
+              <span className="text-base text-custom-text-300 font-semibold">
+                {cyclePlotOptions.find((v) => v.value === plotType)?.label || "Burn-down"}
+              </span>
+            }
+            onChange={onPlotTypeChange}
+            maxHeight="lg"
+            buttonClassName="!border-none !shadow-none !bg-transparent hover:!bg-custom-background-80"
+          >
+            {cyclePlotOptions.map((item) => (
+              <CustomSelect.Option key={item.value} value={item.value}>
+                {item.label}
+              </CustomSelect.Option>
+            ))}
+          </CustomSelect>
           <span className="text-sm text-custom-text-400">for</span>
           <EstimateTypeDropdown
             value={estimateType}
-            onChange={onChange}
+            onChange={onEstimateTypeChange}
             cycleId={cycle.id}
             projectId={projectId}
           />
