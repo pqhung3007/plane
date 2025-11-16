@@ -40,6 +40,7 @@ class AutomationExecutor:
     def evaluate_conditions(self):
         """
         Evaluate all conditions defined in the automation.
+        Supports both simple array conditions (backward compatible) and complex nested groups.
 
         Returns:
             bool: True if all conditions are met, False otherwise
@@ -47,15 +48,58 @@ class AutomationExecutor:
         if not self.automation.conditions:
             return True  # No conditions means always execute
 
-        for condition in self.automation.conditions:
-            field = condition.get("field")
-            operator = condition.get("operator")
-            value = condition.get("value")
+        # Check if it's a condition group (complex) or simple array (backward compatible)
+        if isinstance(self.automation.conditions, dict) and "operator" in self.automation.conditions:
+            # Complex nested conditions
+            return self._evaluate_condition_group(self.automation.conditions)
+        else:
+            # Simple array of conditions (backward compatible - uses AND logic)
+            for condition in self.automation.conditions:
+                field = condition.get("field")
+                operator = condition.get("operator")
+                value = condition.get("value")
 
-            if not self._evaluate_condition(field, operator, value):
-                return False
+                if not self._evaluate_condition(field, operator, value):
+                    return False
 
-        return True
+            return True
+
+    def _evaluate_condition_group(self, group):
+        """
+        Recursively evaluate a condition group with AND/OR logic.
+
+        Args:
+            group: Condition group object with operator and conditions
+
+        Returns:
+            bool: True if the group conditions are met
+        """
+        group_operator = group.get("operator", "AND")
+        conditions = group.get("conditions", [])
+
+        if not conditions:
+            return True
+
+        results = []
+        for condition in conditions:
+            # Check if this is a nested group or a simple condition
+            if isinstance(condition, dict) and "operator" in condition and "conditions" in condition:
+                # Nested group - recurse
+                result = self._evaluate_condition_group(condition)
+            else:
+                # Simple condition
+                field = condition.get("field")
+                operator = condition.get("operator")
+                value = condition.get("value")
+                result = self._evaluate_condition(field, operator, value)
+
+            results.append(result)
+
+        # Apply the group operator
+        if group_operator == "OR":
+            return any(results)
+        else:  # AND
+            return all(results)
 
     def _evaluate_condition(self, field, operator, value):
         """

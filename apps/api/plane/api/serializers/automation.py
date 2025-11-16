@@ -63,14 +63,31 @@ class ProjectAutomationSerializer(BaseSerializer):
         return value
 
     def validate_conditions(self, value):
-        """Validate that conditions is a list of condition objects"""
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Conditions must be a list")
+        """
+        Validate conditions - supports both simple array (backward compatible) and complex groups.
 
+        Simple format: [{"field": "state", "operator": "is", "value": "..."}]
+        Complex format: {"operator": "AND", "conditions": [...]}
+        """
+        if not value:
+            return value
+
+        # Check if it's a complex condition group or simple array
+        if isinstance(value, dict):
+            # Complex condition group
+            return self._validate_condition_group(value)
+        elif isinstance(value, list):
+            # Simple array (backward compatible)
+            return self._validate_condition_list(value)
+        else:
+            raise serializers.ValidationError("Conditions must be a list or a condition group object")
+
+    def _validate_condition_list(self, conditions):
+        """Validate a simple list of conditions (backward compatible)"""
         valid_fields = ["state", "priority", "label", "assignee", "created_by", "issue_type"]
         valid_operators = ["is", "is_not", "contains", "not_contains", "is_empty", "is_not_empty"]
 
-        for condition in value:
+        for condition in conditions:
             if not isinstance(condition, dict):
                 raise serializers.ValidationError("Each condition must be an object")
 
@@ -97,7 +114,46 @@ class ProjectAutomationSerializer(BaseSerializer):
                         f"Condition with operator '{condition['operator']}' must have a 'value' property"
                     )
 
-        return value
+        return conditions
+
+    def _validate_condition_group(self, group, depth=0):
+        """Recursively validate a condition group with nested conditions"""
+        # Prevent excessive nesting
+        if depth > 5:
+            raise serializers.ValidationError("Condition groups cannot be nested more than 5 levels deep")
+
+        if not isinstance(group, dict):
+            raise serializers.ValidationError("Condition group must be an object")
+
+        if "operator" not in group:
+            raise serializers.ValidationError("Condition group must have an 'operator' property")
+
+        if group["operator"] not in ["AND", "OR"]:
+            raise serializers.ValidationError("Condition group operator must be 'AND' or 'OR'")
+
+        if "conditions" not in group:
+            raise serializers.ValidationError("Condition group must have a 'conditions' property")
+
+        if not isinstance(group["conditions"], list):
+            raise serializers.ValidationError("Condition group 'conditions' must be a list")
+
+        if len(group["conditions"]) == 0:
+            raise serializers.ValidationError("Condition group must have at least one condition")
+
+        # Validate each condition in the group
+        for condition in group["conditions"]:
+            if isinstance(condition, dict):
+                # Check if it's a nested group or a simple condition
+                if "operator" in condition and "conditions" in condition:
+                    # Nested group - recurse
+                    self._validate_condition_group(condition, depth + 1)
+                else:
+                    # Simple condition - validate it
+                    self._validate_condition_list([condition])
+            else:
+                raise serializers.ValidationError("Each item in condition group must be an object")
+
+        return group
 
     def validate_actions(self, value):
         """Validate that actions is a list of action objects"""

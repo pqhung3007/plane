@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
-import { Plus, Settings2, MoreVertical, Pencil, Trash2, Circle } from "lucide-react";
+import { Plus, Settings2, MoreVertical, Pencil, Trash2, Circle, Sparkles, Zap } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -14,6 +14,7 @@ import { CustomMenu } from "@plane/ui";
 import { AutomationService } from "@/services/project/automation.service";
 // components
 import { WorkflowAutomationModal } from "./workflow-automation-modal";
+import { AdvancedAutomationBuilder } from "./advanced-automation-builder";
 // helpers
 import { renderFormattedDate, renderFormattedTime } from "@/helpers/date-time.helper";
 
@@ -28,6 +29,7 @@ const automationService = new AutomationService();
 export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, canPerformAdminActions }: Props) => {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdvancedBuilderOpen, setIsAdvancedBuilderOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<TProjectAutomation | null>(null);
   const [loadingActivities, setLoadingActivities] = useState<Set<string>>(new Set());
 
@@ -68,14 +70,24 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
     }
   );
 
-  const handleCreateAutomation = () => {
+  const handleCreateSimpleAutomation = () => {
     setSelectedAutomation(null);
     setIsModalOpen(true);
   };
 
+  const handleCreateAdvancedAutomation = () => {
+    setSelectedAutomation(null);
+    setIsAdvancedBuilderOpen(true);
+  };
+
   const handleEditAutomation = (automation: TProjectAutomation) => {
     setSelectedAutomation(automation);
-    setIsModalOpen(true);
+    // Check if automation uses complex conditions (open advanced builder)
+    if (typeof automation.conditions === "object" && !Array.isArray(automation.conditions)) {
+      setIsAdvancedBuilderOpen(true);
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   const handleToggleAutomation = async (automation: TProjectAutomation) => {
@@ -201,9 +213,32 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
             </p>
           </div>
           {canPerformAdminActions && (
-            <Button variant="primary" size="sm" onClick={handleCreateAutomation} leadingIcon={Plus}>
-              Create automation
-            </Button>
+            <CustomMenu
+              customButton={
+                <Button variant="primary" size="sm" leadingIcon={Plus}>
+                  Create automation
+                </Button>
+              }
+            >
+              <CustomMenu.MenuItem onClick={handleCreateSimpleAutomation}>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5" />
+                  <div>
+                    <div className="text-sm font-medium">Quick automation</div>
+                    <div className="text-xs text-custom-text-300">Create a simple automation</div>
+                  </div>
+                </div>
+              </CustomMenu.MenuItem>
+              <CustomMenu.MenuItem onClick={handleCreateAdvancedAutomation}>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <div>
+                    <div className="text-sm font-medium">Advanced automation</div>
+                    <div className="text-xs text-custom-text-300">Use visual builder with AND/OR logic</div>
+                  </div>
+                </div>
+              </CustomMenu.MenuItem>
+            </CustomMenu>
           )}
         </div>
 
@@ -394,6 +429,23 @@ export const WorkflowAutomationsTable = observer(({ workspaceSlug, projectId, ca
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
+            setSelectedAutomation(null);
+          }}
+          onSuccess={() => {
+            mutate(`AUTOMATIONS_${workspaceSlug}_${projectId}`);
+            mutate(`AUTOMATION_ACTIVITIES_${workspaceSlug}_${projectId}`);
+          }}
+        />
+      )}
+
+      {isAdvancedBuilderOpen && (
+        <AdvancedAutomationBuilder
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          automation={selectedAutomation}
+          isOpen={isAdvancedBuilderOpen}
+          onClose={() => {
+            setIsAdvancedBuilderOpen(false);
             setSelectedAutomation(null);
           }}
           onSuccess={() => {

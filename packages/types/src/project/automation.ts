@@ -41,11 +41,26 @@ export type TAutomationTriggerConfig = {
   schedule?: string;
 };
 
+// Simple condition (backward compatible)
 export type TAutomationCondition = {
   field: TAutomationConditionField;
   operator: TAutomationConditionOperator;
   value?: string | string[] | number | boolean;
 };
+
+// Condition group operator
+export type TConditionGroupOperator = "AND" | "OR";
+
+// Condition group for complex nested conditions
+export type TAutomationConditionGroup = {
+  operator: TConditionGroupOperator;
+  conditions: (TAutomationCondition | TAutomationConditionGroup)[];
+};
+
+// Unified type that supports both simple and complex conditions
+export type TAutomationConditions =
+  | TAutomationCondition[]  // Simple array (backward compatible)
+  | TAutomationConditionGroup;  // Complex nested structure
 
 export type TAutomationActionConfig = {
   // Comment action
@@ -80,7 +95,7 @@ export type TProjectAutomation = {
   is_active: boolean;
   trigger_type: TAutomationTriggerType;
   trigger_config: TAutomationTriggerConfig;
-  conditions: TAutomationCondition[];
+  conditions: TAutomationCondition[] | TAutomationConditionGroup;  // Support both simple and complex
   actions: TAutomationAction[];
   execution_count: number;
   last_executed_at: string | null;
