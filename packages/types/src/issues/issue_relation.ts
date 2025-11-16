@@ -8,4 +8,12 @@ export type TIssueRelationMap = {
 
 export type TIssueRelationIdMap = Record<TIssueRelationTypes, string[]>;
 
-export type TIssueRelationTypes = "blocking" | "blocked_by" | "duplicate" | "relates_to";
+export type TIssueRelationTypes =
+  | "blocking"
+  | "blocked_by"
+  | "duplicate"
+  | "relates_to"
+  | "starts_before"
+  | "starts_after"
+  | "finishes_before"
+  | "finishes_after";
