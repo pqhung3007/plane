@@ -93,6 +93,36 @@ export const ANALYTICS_INSIGHTS_FIELDS: Record<TAnalyticsTabsBase, IInsightField
       i18nKey: "workspace_analytics.completed_work_items",
     },
   ],
+  modules: [
+    {
+      key: "total_modules",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.modules",
+      },
+    },
+    {
+      key: "total_cycles",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "common.cycles",
+      },
+    },
+    {
+      key: "active_cycles",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "workspace_analytics.active_cycles",
+      },
+    },
+    {
+      key: "completed_cycles",
+      i18nKey: "workspace_analytics.total",
+      i18nProps: {
+        entity: "workspace_analytics.completed_cycles",
+      },
+    },
+  ],
 };
 
 export const ANALYTICS_DURATION_FILTER_OPTIONS = [
