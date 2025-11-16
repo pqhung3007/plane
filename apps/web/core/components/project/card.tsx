@@ -266,11 +266,22 @@ export const ProjectCard: React.FC<Props> = observer((props) => {
             "opacity-90": isArchived,
           })}
         >
-          <p className="line-clamp-2 break-words text-sm text-custom-text-300">
-            {project.description && project.description.trim() !== ""
-              ? project.description
-              : `Created on ${renderFormattedDate(project.created_at)}`}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="line-clamp-2 break-words text-sm text-custom-text-300">
+              {project.description && project.description.trim() !== ""
+                ? project.description
+                : `Created on ${renderFormattedDate(project.created_at)}`}
+            </p>
+            {project.state_detail && (
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="h-2 w-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: project.state_detail.color }}
+                />
+                <span className="text-xs text-custom-text-300">{project.state_detail.name}</span>
+              </div>
+            )}
+          </div>
           <div className="item-center flex justify-between">
             <div className="flex items-center justify-center gap-2">
               <Tooltip

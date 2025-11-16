@@ -13,6 +13,7 @@ import { FilterAccess } from "./access";
 import { FilterCreatedDate } from "./created-at";
 import { FilterLead } from "./lead";
 import { FilterMembers } from "./members";
+import { FilterState } from "./state";
 
 type Props = {
   displayFilters: TProjectDisplayFilters;
@@ -88,6 +89,15 @@ export const ProjectFiltersSelection: React.FC<Props> = observer((props) => {
             handleUpdate={(val) => handleFiltersUpdate("members", val)}
             searchQuery={filtersSearchQuery}
             memberIds={memberIds}
+          />
+        </div>
+
+        {/* state */}
+        <div className="py-2">
+          <FilterState
+            appliedFilters={filters.state ?? null}
+            handleUpdate={(val) => handleFiltersUpdate("state", val)}
+            searchQuery={filtersSearchQuery}
           />
         </div>
 
