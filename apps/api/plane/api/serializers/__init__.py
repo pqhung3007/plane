@@ -55,3 +55,8 @@ from .asset import (
 )
 from .invite import WorkspaceInviteSerializer
 from .member import ProjectMemberSerializer
+from .time_log import (
+    TimeLogSerializer,
+    TimeLogLiteSerializer,
+    TimeLogStatsSerializer,
+)

@@ -13,6 +13,8 @@ from plane.api.views import (
     IssueAttachmentDetailAPIEndpoint,
     WorkspaceIssueAPIEndpoint,
     IssueSearchEndpoint,
+    IssueTimeLogListCreateAPIEndpoint,
+    IssueTimeLogDetailAPIEndpoint,
 )
 
 # Deprecated url patterns
@@ -77,6 +79,16 @@ old_url_patterns = [
         IssueAttachmentDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
         name="issue-attachment",
     ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/time-logs/",
+        IssueTimeLogListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        name="issue-time-log-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/time-logs/<uuid:time_log_id>/",
+        IssueTimeLogDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        name="issue-time-log-detail",
+    ),
 ]
 
 # New url patterns with work-items as the prefix
@@ -140,6 +152,16 @@ new_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/attachments/<uuid:pk>/",
         IssueAttachmentDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
         name="work-item-attachment-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/time-logs/",
+        IssueTimeLogListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        name="work-item-time-log-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/time-logs/<uuid:time_log_id>/",
+        IssueTimeLogDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        name="work-item-time-log-detail",
     ),
 ]
 
