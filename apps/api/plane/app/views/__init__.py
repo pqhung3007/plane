@@ -169,6 +169,12 @@ from .page.base import (
     PageDuplicateEndpoint,
 )
 from .page.version import PageVersionEndpoint
+from .page.template import (
+    WorkspacePageTemplateViewSet,
+    ProjectPageTemplateViewSet,
+    PageTemplateContentUpdateAPIView,
+    UsePageTemplateAPIView,
+)
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint

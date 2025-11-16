@@ -176,3 +176,54 @@ class PageVersion(BaseModel):
             else strip_tags(self.description_html)
         )
         super(PageVersion, self).save(*args, **kwargs)
+
+
+class PageTemplate(BaseModel):
+    WORKSPACE_SCOPE = "workspace"
+    PROJECT_SCOPE = "project"
+
+    SCOPE_CHOICES = (
+        (WORKSPACE_SCOPE, "Workspace"),
+        (PROJECT_SCOPE, "Project"),
+    )
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_templates")
+    project = models.ForeignKey(
+        "db.Project",
+        on_delete=models.CASCADE,
+        related_name="page_templates",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    scope = models.CharField(max_length=20, choices=SCOPE_CHOICES, default=WORKSPACE_SCOPE)
+    content = models.JSONField(default=dict, blank=True)
+    content_binary = models.BinaryField(null=True)
+    content_html = models.TextField(blank=True, default="<p></p>")
+    logo_props = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_page_templates",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="updated_page_templates",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "Page Template"
+        verbose_name_plural = "Page Templates"
+        db_table = "page_templates"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["workspace", "scope"], name="page_template_ws_scope_idx"),
+            models.Index(fields=["project"], name="page_template_project_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.workspace.name} - {self.name}"
