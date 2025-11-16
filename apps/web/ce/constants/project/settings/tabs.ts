@@ -62,6 +62,14 @@ export const PROJECT_SETTINGS = {
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/automations/`,
     Icon: SettingIcon,
   },
+  templates: {
+    key: "templates",
+    i18n_label: "Templates",
+    href: `/templates`,
+    access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/templates/`,
+    Icon: SettingIcon,
+  },
 };
 
 export const PROJECT_SETTINGS_LINKS: {
@@ -79,4 +87,5 @@ export const PROJECT_SETTINGS_LINKS: {
   PROJECT_SETTINGS["labels"],
   PROJECT_SETTINGS["estimates"],
   PROJECT_SETTINGS["automations"],
+  PROJECT_SETTINGS["templates"],
 ];
