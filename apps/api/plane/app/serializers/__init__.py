@@ -96,6 +96,9 @@ from .page import (
     PageVersionSerializer,
     PageBinaryUpdateSerializer,
     PageVersionDetailSerializer,
+    PageTemplateSerializer,
+    PageTemplateDetailSerializer,
+    PageTemplateBinaryUpdateSerializer,
 )
 
 from .estimate import (

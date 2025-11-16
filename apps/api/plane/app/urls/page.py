@@ -7,6 +7,10 @@ from plane.app.views import (
     PagesDescriptionViewSet,
     PageVersionEndpoint,
     PageDuplicateEndpoint,
+    WorkspacePageTemplateViewSet,
+    ProjectPageTemplateViewSet,
+    PageTemplateContentUpdateAPIView,
+    UsePageTemplateAPIView,
 )
 
 urlpatterns = [
@@ -68,5 +72,43 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/",
         PageDuplicateEndpoint.as_view(),
         name="page-duplicate",
+    ),
+    # Workspace-level page templates
+    path(
+        "workspaces/<str:slug>/page-templates/",
+        WorkspacePageTemplateViewSet.as_view({"get": "list", "post": "create"}),
+        name="workspace-page-templates",
+    ),
+    path(
+        "workspaces/<str:slug>/page-templates/<uuid:pk>/",
+        WorkspacePageTemplateViewSet.as_view(
+            {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="workspace-page-template-detail",
+    ),
+    # Project-level page templates
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/page-templates/",
+        ProjectPageTemplateViewSet.as_view({"get": "list", "post": "create"}),
+        name="project-page-templates",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/page-templates/<uuid:pk>/",
+        ProjectPageTemplateViewSet.as_view(
+            {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="project-page-template-detail",
+    ),
+    # Template content update
+    path(
+        "workspaces/<str:slug>/page-templates/<uuid:pk>/content/",
+        PageTemplateContentUpdateAPIView.as_view(),
+        name="page-template-content-update",
+    ),
+    # Use template to create page
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/page-templates/<uuid:template_id>/use/",
+        UsePageTemplateAPIView.as_view(),
+        name="use-page-template",
     ),
 ]

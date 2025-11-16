@@ -15,6 +15,7 @@ from plane.db.models import (
     ProjectPage,
     Project,
     PageVersion,
+    PageTemplate,
 )
 
 
@@ -216,6 +217,114 @@ class PageBinaryUpdateSerializer(serializers.Serializer):
 
         if "description" in validated_data:
             instance.description = validated_data.get("description")
+
+        instance.save()
+        return instance
+
+
+class PageTemplateSerializer(BaseSerializer):
+    created_by_detail = serializers.SerializerMethodField()
+    updated_by_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PageTemplate
+        fields = [
+            "id",
+            "workspace",
+            "project",
+            "name",
+            "description",
+            "scope",
+            "logo_props",
+            "created_by",
+            "created_by_detail",
+            "updated_by",
+            "updated_by_detail",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["workspace", "created_by", "created_by_detail", "updated_by_detail"]
+
+    def get_created_by_detail(self, obj):
+        return {
+            "id": str(obj.created_by.id),
+            "email": obj.created_by.email,
+            "first_name": obj.created_by.first_name,
+            "last_name": obj.created_by.last_name,
+            "display_name": obj.created_by.display_name,
+            "avatar": obj.created_by.avatar,
+        }
+
+    def get_updated_by_detail(self, obj):
+        if not obj.updated_by:
+            return None
+        return {
+            "id": str(obj.updated_by.id),
+            "email": obj.updated_by.email,
+            "first_name": obj.updated_by.first_name,
+            "last_name": obj.updated_by.last_name,
+            "display_name": obj.updated_by.display_name,
+            "avatar": obj.updated_by.avatar,
+        }
+
+
+class PageTemplateDetailSerializer(PageTemplateSerializer):
+    content_html = serializers.CharField()
+
+    class Meta(PageTemplateSerializer.Meta):
+        fields = PageTemplateSerializer.Meta.fields + ["content", "content_html", "content_binary"]
+
+
+class PageTemplateBinaryUpdateSerializer(serializers.Serializer):
+    """Serializer for updating page template binary content with validation"""
+
+    content_binary = serializers.CharField(required=False, allow_blank=True)
+    content_html = serializers.CharField(required=False, allow_blank=True)
+    content = serializers.JSONField(required=False, allow_null=True)
+
+    def validate_content_binary(self, value):
+        """Validate the base64-encoded binary data"""
+        if not value:
+            return value
+
+        try:
+            # Decode the base64 data
+            binary_data = base64.b64decode(value)
+
+            # Validate the binary data
+            is_valid, error_message = validate_binary_data(binary_data)
+            if not is_valid:
+                raise serializers.ValidationError(f"Invalid binary data: {error_message}")
+
+            return binary_data
+        except Exception as e:
+            if isinstance(e, serializers.ValidationError):
+                raise
+            raise serializers.ValidationError("Failed to decode base64 data")
+
+    def validate_content_html(self, value):
+        """Validate the HTML content"""
+        if not value:
+            return value
+
+        # Use the validation function from utils
+        is_valid, error_message, sanitized_html = validate_html_content(value)
+        if not is_valid:
+            raise serializers.ValidationError(error_message)
+
+        # Return sanitized HTML if available, otherwise return original
+        return sanitized_html if sanitized_html is not None else value
+
+    def update(self, instance, validated_data):
+        """Update the template instance with validated data"""
+        if "content_binary" in validated_data:
+            instance.content_binary = validated_data.get("content_binary")
+
+        if "content_html" in validated_data:
+            instance.content_html = validated_data.get("content_html")
+
+        if "content" in validated_data:
+            instance.content = validated_data.get("content")
 
         instance.save()
         return instance

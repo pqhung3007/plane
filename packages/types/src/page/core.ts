@@ -75,3 +75,39 @@ export type TWebhookConnectionQueryParams = {
   teamId?: string;
   workspaceSlug: string;
 };
+
+export type TPageTemplate = {
+  id: string;
+  workspace: string;
+  project?: string | null;
+  name: string;
+  description: string;
+  scope: "workspace" | "project";
+  logo_props: TLogoProps;
+  created_by: string;
+  created_by_detail?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    display_name: string;
+    avatar: string;
+  };
+  updated_by?: string | null;
+  updated_by_detail?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    display_name: string;
+    avatar: string;
+  } | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TPageTemplateDetail = TPageTemplate & {
+  content: object;
+  content_html: string;
+  content_binary?: string | null;
+};
