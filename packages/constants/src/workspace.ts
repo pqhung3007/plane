@@ -106,6 +106,13 @@ export const WORKSPACE_SETTINGS = {
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/webhooks/`,
   },
+  "project-states": {
+    key: "project-states",
+    i18n_label: "Project States",
+    href: `/settings/project-states`,
+    access: [EUserWorkspaceRoles.ADMIN],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/project-states/`,
+  },
 };
 
 export const WORKSPACE_SETTINGS_ACCESS = Object.fromEntries(
@@ -124,6 +131,7 @@ export const WORKSPACE_SETTINGS_LINKS: {
   WORKSPACE_SETTINGS["billing-and-plans"],
   WORKSPACE_SETTINGS["export"],
   WORKSPACE_SETTINGS["webhooks"],
+  WORKSPACE_SETTINGS["project-states"],
 ];
 
 export const ROLE = {

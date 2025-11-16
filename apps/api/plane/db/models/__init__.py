@@ -54,6 +54,7 @@ from .project import (
     ProjectMemberInvite,
     ProjectPublicMember,
 )
+from .project_state import ProjectState
 from .session import Session
 from .social_connection import SocialLoginConnection
 from .state import State
