@@ -1,3 +1,4 @@
+export * from "./automation.service";
 export * from "./project.service";
 export * from "./project-export.service";
 export * from "./project-member.service";
