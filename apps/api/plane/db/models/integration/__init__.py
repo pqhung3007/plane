@@ -4,5 +4,8 @@ from .github import (
     GithubRepositorySync,
     GithubIssueSync,
     GithubCommentSync,
+    GithubUserConnection,
+    GithubPRStateMapping,
+    GithubPRSync,
 )
 from .slack import SlackProjectSync
