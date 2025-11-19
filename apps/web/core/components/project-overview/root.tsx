@@ -71,11 +71,13 @@ export const ProjectOverviewRoot = observer(() => {
           />
 
           {/* Project Updates */}
-          <ProjectOverviewUpdates
-            workspaceSlug={workspaceSlug.toString()}
-            projectId={projectId.toString()}
-            hasEditPermission={hasEditPermission}
-          />
+          {project.updates_view && (
+            <ProjectOverviewUpdates
+              workspaceSlug={workspaceSlug.toString()}
+              projectId={projectId.toString()}
+              hasEditPermission={hasEditPermission}
+            />
+          )}
 
           {/* Activity Feed */}
           <ProjectOverviewActivity

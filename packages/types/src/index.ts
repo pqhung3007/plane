@@ -30,6 +30,7 @@ export * from "./page";
 export * from "./payment";
 export * from "./pragmatic";
 export * from "./project";
+export * from "./project-update";
 export * from "./publish";
 export * from "./reaction";
 export * from "./rich-filters";
