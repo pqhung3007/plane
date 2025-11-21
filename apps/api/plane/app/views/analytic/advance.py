@@ -1,9 +1,9 @@
 from rest_framework.response import Response
 from rest_framework import status
 from typing import Dict, List, Any
-from django.db.models import QuerySet, Q, Count
+from django.db.models import QuerySet, Q, Count, F, Case, When, Value, FloatField
 from django.http import HttpRequest
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, Concat, Cast
 from django.utils import timezone
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import ROLE, allow_permission
@@ -12,12 +12,14 @@ from plane.db.models import (
     Project,
     Issue,
     Cycle,
+    CycleIssue,
     Module,
     IssueView,
     ProjectPage,
     Workspace,
     ProjectMember,
 )
+from django.db import models
 from plane.utils.build_chart import build_analytics_chart
 from plane.utils.date_utils import (
     get_analytics_filters,
@@ -97,6 +99,30 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
             "completed_work_items": self.get_filtered_counts(base_queryset.filter(state__group="completed")),
         }
 
+    def get_cycle_stats(self) -> Dict[str, Dict[str, int]]:
+        base_queryset = Cycle.objects.filter(**self.filters["base_filters"], archived_at__isnull=True)
+
+        now = timezone.now()
+
+        # Current cycles: start_date <= now and end_date >= now
+        current_cycles = base_queryset.filter(
+            start_date__lte=now,
+            end_date__gte=now
+        )
+
+        # Upcoming cycles: start_date > now
+        upcoming_cycles = base_queryset.filter(start_date__gt=now)
+
+        # Completed cycles: end_date < now
+        completed_cycles = base_queryset.filter(end_date__lt=now)
+
+        return {
+            "total_cycles": self.get_filtered_counts(base_queryset),
+            "current_cycles": self.get_filtered_counts(current_cycles),
+            "upcoming_cycles": self.get_filtered_counts(upcoming_cycles),
+            "completed_cycles": self.get_filtered_counts(completed_cycles),
+        }
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="analytics")
@@ -110,6 +136,11 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
         elif tab == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif tab == "cycles":
+            return Response(
+                self.get_cycle_stats(),
                 status=status.HTTP_200_OK,
             )
         return Response({"message": "Invalid tab"}, status=status.HTTP_400_BAD_REQUEST)
@@ -151,6 +182,94 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
             .order_by("project_id")
         )
 
+    def get_cycles_table_stats(self) -> List[Dict[str, Any]]:
+        """
+        Returns cycle analytics table data with cycle details and work item counts
+        """
+        base_queryset = Cycle.objects.filter(**self.filters["base_filters"], archived_at__isnull=True)
+
+        # Apply date range filter if available
+        if self.filters["chart_period_range"]:
+            start_date, end_date = self.filters["chart_period_range"]
+            base_queryset = base_queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+        now = timezone.now()
+
+        # Get cycles with their status and work item counts
+        cycles_data = (
+            base_queryset
+            .select_related('project', 'owned_by')
+            .prefetch_related('issue_cycle')
+            .values(
+                'id',
+                'name',
+                'start_date',
+                'end_date',
+                'project_id',
+                'project__name',
+                'owned_by__display_name',
+                'owned_by__avatar',
+                'owned_by__id',
+            )
+            .annotate(
+                # Determine cycle status based on dates
+                status=Case(
+                    When(Q(start_date__isnull=True) | Q(end_date__isnull=True), then=Value('draft')),
+                    When(Q(start_date__lte=now) & Q(end_date__gte=now), then=Value('current')),
+                    When(start_date__gt=now, then=Value('upcoming')),
+                    When(end_date__lt=now, then=Value('completed')),
+                    default=Value('draft'),
+                    output_field=models.CharField(),
+                ),
+            )
+            .order_by('-created_at')
+        )
+
+        # For each cycle, get work item counts
+        result = []
+        for cycle in cycles_data:
+            cycle_id = cycle['id']
+
+            # Get all issues in this cycle
+            cycle_issues = CycleIssue.objects.filter(
+                cycle_id=cycle_id,
+                **self.filters["base_filters"]
+            ).values_list('issue_id', flat=True)
+
+            issues = Issue.issue_objects.filter(id__in=cycle_issues)
+
+            total_items = issues.count()
+            completed_items = issues.filter(state__group='completed').count()
+            started_items = issues.filter(state__group='started').count()
+            unstarted_items = issues.filter(state__group='unstarted').count()
+            backlog_items = issues.filter(state__group='backlog').count()
+            cancelled_items = issues.filter(state__group='cancelled').count()
+
+            # Calculate completion percentage
+            completion_percentage = (completed_items / total_items * 100) if total_items > 0 else 0
+
+            result.append({
+                'cycle_id': str(cycle_id),
+                'cycle_name': cycle['name'],
+                'project_id': str(cycle['project_id']),
+                'project_name': cycle['project__name'],
+                'lead_id': str(cycle['owned_by__id']) if cycle['owned_by__id'] else None,
+                'lead_name': cycle['owned_by__display_name'],
+                'lead_avatar': cycle['owned_by__avatar'],
+                'start_date': cycle['start_date'].isoformat() if cycle['start_date'] else None,
+                'end_date': cycle['end_date'].isoformat() if cycle['end_date'] else None,
+                'status': cycle['status'],
+                'total_work_items': total_items,
+                'completed_work_items': completed_items,
+                'started_work_items': started_items,
+                'unstarted_work_items': unstarted_items,
+                'backlog_work_items': backlog_items,
+                'cancelled_work_items': cancelled_items,
+                'completion_percentage': round(completion_percentage, 2),
+            })
+
+        return result
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -159,6 +278,11 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
         if type == "work-items":
             return Response(
                 self.get_work_items_stats(),
+                status=status.HTTP_200_OK,
+            )
+        elif type == "cycles":
+            return Response(
+                self.get_cycles_table_stats(),
                 status=status.HTTP_200_OK,
             )
 
@@ -278,6 +402,83 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
 
         return {"data": data, "schema": schema}
 
+    def cycle_completion_chart(self) -> Dict[str, Any]:
+        """
+        Returns bar chart data showing completion percentage by cycle status
+        """
+        base_queryset = Cycle.objects.filter(**self.filters["base_filters"], archived_at__isnull=True)
+
+        # Apply date range filter if available
+        if self.filters["chart_period_range"]:
+            start_date, end_date = self.filters["chart_period_range"]
+            base_queryset = base_queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+        now = timezone.now()
+
+        # Get cycles with their status
+        cycles = base_queryset.select_related('project').prefetch_related('issue_cycle')
+
+        data = []
+        for cycle in cycles:
+            # Determine cycle status
+            if cycle.start_date is None or cycle.end_date is None:
+                status = 'draft'
+            elif cycle.start_date <= now <= cycle.end_date:
+                status = 'current'
+            elif cycle.start_date > now:
+                status = 'upcoming'
+            elif cycle.end_date < now:
+                status = 'completed'
+            else:
+                status = 'draft'
+
+            # Get all issues in this cycle
+            cycle_issues = CycleIssue.objects.filter(
+                cycle_id=cycle.id,
+                **self.filters["base_filters"]
+            ).values_list('issue_id', flat=True)
+
+            issues = Issue.issue_objects.filter(id__in=cycle_issues)
+
+            total_items = issues.count()
+            completed_items = issues.filter(state__group='completed').count()
+            started_items = issues.filter(state__group='started').count()
+            unstarted_items = issues.filter(state__group='unstarted').count()
+            backlog_items = issues.filter(state__group='backlog').count()
+            cancelled_items = issues.filter(state__group='cancelled').count()
+            pending_items = total_items - completed_items
+
+            # Calculate completion percentage
+            completion_percentage = (completed_items / total_items * 100) if total_items > 0 else 0
+
+            data.append({
+                'key': cycle.name,
+                'cycle_id': str(cycle.id),
+                'cycle_name': cycle.name,
+                'status': status,
+                'start_date': cycle.start_date.isoformat() if cycle.start_date else None,
+                'end_date': cycle.end_date.isoformat() if cycle.end_date else None,
+                'total_work_items': total_items,
+                'completed_work_items': completed_items,
+                'pending_work_items': pending_items,
+                'started_work_items': started_items,
+                'unstarted_work_items': unstarted_items,
+                'backlog_work_items': backlog_items,
+                'cancelled_work_items': cancelled_items,
+                'completion_percentage': round(completion_percentage, 2),
+            })
+
+        # Sort by status priority: current, upcoming, completed, draft
+        status_order = {'current': 0, 'upcoming': 1, 'completed': 2, 'draft': 3}
+        data.sort(key=lambda x: (status_order.get(x['status'], 4), x['cycle_name']))
+
+        schema = {
+            'completed_work_items': 'completed_work_items',
+            'pending_work_items': 'pending_work_items',
+        }
+
+        return {"data": data, "schema": schema}
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
@@ -308,6 +509,12 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
         elif type == "work-items":
             return Response(
                 self.work_item_completion_chart(),
+                status=status.HTTP_200_OK,
+            )
+
+        elif type == "cycles":
+            return Response(
+                self.cycle_completion_chart(),
                 status=status.HTTP_200_OK,
             )
 
